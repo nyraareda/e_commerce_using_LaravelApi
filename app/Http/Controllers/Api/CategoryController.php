@@ -43,9 +43,6 @@ class CategoryController extends Controller
 
     if ($request->product_ids) {
         foreach ($request->product_ids as $product_id) {
-            // if (ProductsCategory::where('product_id', $product_id)->exists()) {
-            //     return $this->errorResponse("Product ID $product_id is already assigned to another category.", 422);
-            // }
             ProductsCategory::create([
                 'product_id' => $product_id,
                 'category_id' => $category->id,
@@ -76,9 +73,6 @@ public function update($id, CreateCategoryRequest $request)
     if ($request->product_ids) {
         ProductsCategory::where('category_id', $category->id)->delete();
         foreach ($request->product_ids as $product_id) {
-            // if (ProductsCategory::where('product_id', $product_id)->exists()) {
-            //     return $this->errorResponse("Product ID $product_id is already assigned to another category.", 422);
-            // }
             ProductsCategory::create([
                 'product_id' => $product_id,
                 'category_id' => $category->id,

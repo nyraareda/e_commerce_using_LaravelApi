@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Controllers\Api;
-
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\UserRequest;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -26,15 +27,8 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function login(Request $request) {
-        $validator = Validator::make($request->all(), [
-            'username' => 'required|string',
-            'password' => 'required|string|min:6',
-        ]);
-    
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+    public function login(LoginRequest $request) {
+        
     
         $credentials = $request->only('username', 'password');
     
@@ -64,22 +58,12 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function register(Request $request) {
-        $validator = Validator::make($request->all(), [
-            'username' => 'required|string|between:2,100',
-            'password' => 'required|confirmed',
-            'role' => 'required|string',
-        ]);
-    
-        if($validator->fails()){
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-    
+    public function register(UserRequest $request) {
         $user = User::create(array_merge(
-            $validator->validated(),
+            $request->validated(),
             ['password' => bcrypt($request->password)],
         ));
-    
+
         return response()->json([
             'message' => 'User successfully registered',
             'user' => $user

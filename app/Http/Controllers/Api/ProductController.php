@@ -90,6 +90,7 @@ class ProductController extends Controller
         $product->name = $request->name;
         $product->description = $request->description;
         $product->price = $request->price;
+        $product->quantity = $request->quantity;
 
         if ($request->hasFile('image')) {
             $originalFilename = $request->image->getClientOriginalName();
@@ -101,7 +102,6 @@ class ProductController extends Controller
 
         $product->save();
 
-        // Associate product with a category
         if ($request->category_id) {
             ProductsCategory::create([
                 'product_id' => $product->id,
@@ -123,53 +123,46 @@ class ProductController extends Controller
     }
 
 
-    public function update(Request $request, $id)
-{
-    $product = Product::find($id);
+    public function update(ProductRequest $request, $id)
+    {
 
-    if (!$product) {
-        return response()->json(['error' => 'Product not found'], 404);
-    }
+        $validatedData = $request->validated();
 
-    $validator = Validator::make($request->all(), [
-        'name' => 'sometimes|required|string|max:255',
-        'description' => 'sometimes|nullable|string',
-        'price' => 'sometimes|required|numeric',
-        'image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        'category_ids' => 'array',
-        'attributes' => 'array',
-    ]);
+        $product = Product::find($id);
 
-    if ($validator->fails()) {
-        return response()->json($validator->errors(), 400);
-    }
-
-    $product->fill($validator->validated());
-
-    if ($request->hasFile('image')) {
-        $imagePath = $request->file('image')->store('images', 'public');
-        $product->image = basename($imagePath);
-    }
-
-    $product->save();
-
-    if ($request->category_ids) {
-        $product->categories()->sync($request->category_ids);
-    }
-
-    if ($request->attributes) {
-        $product->attributes()->delete();
-        foreach ($request->attributes as $attribute) {
-            ProductAttribute::create([
-                'product_id' => $product->id,
-                'attribute_name' => $attribute['name'],
-                'attribute_value' => $attribute['value'],
-            ]);
+        if (!$product) {
+            return response()->json(['error' => 'Product not found'], 404);
         }
-    }
 
-    return response()->json(['message' => 'Product updated successfully', 'product' => $product]);
-}
+        $product->fill($validatedData);
+
+        if ($request->hasFile('image')) {
+            $originalFilename = $request->image->getClientOriginalName();
+            $request->image->move(public_path('images'), $originalFilename);
+            $product->image = $originalFilename;
+        } else {
+            $product->image = 'default.jpg';
+        }
+
+        $product->save();
+
+        if ($request->category_ids) {
+            $product->categories()->syncWithoutDetaching($request->category_ids);
+        }
+
+        if ($request->attributes) {
+            $product->attributes()->delete();
+            foreach ($request->attributes as $attribute) {
+                ProductAttribute::create([
+                    'product_id' => $product->id,
+                    'attribute_name' => $attribute['name'],
+                    'attribute_value' => $attribute['value'],
+                ]);
+            }
+        }
+
+        return $this->successResponse(new ProductWithCategoryResource($product), 'Product updated successfully');
+    }
 
     public function destroy(Request $request, $id)
     {

@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Http\Resources\ProductAttributeResource;
 use App\Trait\ApiResponse;
+use App\Http\Requests\AttributeRequest;
 
 class ProductAttributeController extends Controller
 {
@@ -31,47 +32,25 @@ class ProductAttributeController extends Controller
         return new ProductAttributeResource($attribute);
     }
 
-    public function store(Request $request)
+    public function store(AttributeRequest $request)
     {
-        $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'attribute_name' => 'required|string|max:255',
-            'attribute_value' => 'required|string|max:255',
-        ]);
+        $validated = $request->validated();
 
-        $attribute = ProductAttribute::create([
-            'product_id' => $request->product_id,
-            'attribute_name' => $request->attribute_name,
-            'attribute_value' => $request->attribute_value,
-        ]);
+        $attribute = ProductAttribute::create($validated);
 
         return $this->successResponse(new ProductAttributeResource($attribute), 'Attribute added successfully');
     }
 
-    public function update(Request $request, $id)
+    public function update(AttributeRequest $request, $id)
     {
+        $validated = $request->validated();
         $attribute = ProductAttribute::find($id);
 
         if (!$attribute) {
             return $this->errorResponse('Attribute not found', 404);
         }
 
-        $request->validate([
-            'product_id' => 'sometimes|required|exists:products,id',
-            'attribute_name' => 'sometimes|required|string|max:255',
-            'attribute_value' => 'sometimes|required|string|max:255',
-        ]);
-
-        if ($request->has('product_id')) {
-            $attribute->product_id = $request->product_id;
-        }
-        if ($request->has('attribute_name')) {
-            $attribute->attribute_name = $request->attribute_name;
-        }
-        if ($request->has('attribute_value')) {
-            $attribute->attribute_value = $request->attribute_value;
-        }
-
+        $attribute->fill($validated);
         $attribute->save();
 
         return $this->successResponse(new ProductAttributeResource($attribute), 'Attribute updated successfully');
