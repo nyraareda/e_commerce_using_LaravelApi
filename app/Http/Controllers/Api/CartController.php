@@ -18,22 +18,22 @@ class CartController extends Controller
     use ApiResponse;
 
     public function index()
-{
-    $carts = Cart::with('product')->get();
-    return CartResource::collection($carts);
-}
-
-public function show($id)
-{
-    try {
-        $cart = Cart::with('product')->findOrFail($id);
-
-        return $this->successResponse(new CartResource($cart));
-    } catch (\Exception $e) {
-        \Log::error('Failed to retrieve cart: ' . $e->getMessage());
-        return $this->errorResponse('Failed to retrieve cart', 500);
+    {
+        $carts = Cart::with('product')->get();
+        return CartResource::collection($carts);
     }
-}
+
+    public function show($id)
+    {
+        try {
+            $cart = Cart::with('product')->findOrFail($id);
+
+            return $this->successResponse(new CartResource($cart));
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to retrieve cart', 500);
+        }
+    }
+
     public function store(CartRequest $request, $productId)
     {
         try {
@@ -67,73 +67,67 @@ public function show($id)
         } catch (\Exception $e) {
             \DB::rollback();
 
-            \Log::error('Failed to add product to cart: ' . $e->getMessage());
-
             return $this->errorResponse('Failed to add product to cart', 500);
         }
     }
 
-    // Method to handle unauthorized access
     public function unauthorized()
     {
         return $this->errorResponse('Not authorized', 401);
     }
 
     public function update(CartRequest $request, $id)
-{
-    try {
-        $cart = Cart::findOrFail($id);
-        $newQuantity = $request->input('quantity', 1);
-        $oldQuantity = $cart->quantity;
+    {
+        try {
+            $cart = Cart::findOrFail($id);
+            $newQuantity = $request->input('quantity', 1);
+            $oldQuantity = $cart->quantity;
 
-        if ($newQuantity > $oldQuantity) {
-            $availableQuantity = $cart->product->quantity;
-            if ($availableQuantity >= ($newQuantity - $oldQuantity)) {
+            if ($newQuantity > $oldQuantity) {
+                $availableQuantity = $cart->product->quantity;
+                if ($availableQuantity >= ($newQuantity - $oldQuantity)) {
+                    $cart->quantity = $newQuantity;
+                    $cart->save();
+
+                    // Update product quantity
+                    $cart->product->quantity -= ($newQuantity - $oldQuantity);
+                    $cart->product->save();
+
+                    return $this->successResponse('Cart updated successfully');
+                } else {
+                    return $this->errorResponse('Not enough quantity available in stock', 400);
+                }
+            } elseif ($newQuantity < $oldQuantity) {
                 $cart->quantity = $newQuantity;
                 $cart->save();
 
-                // Update product quantity
-                $cart->product->quantity -= ($newQuantity - $oldQuantity);
+                $cart->product->quantity += ($oldQuantity - $newQuantity);
                 $cart->product->save();
 
                 return $this->successResponse('Cart updated successfully');
             } else {
-                return $this->errorResponse('Not enough quantity available in stock', 400);
+                return $this->successResponse('No changes made to cart');
             }
-        } elseif ($newQuantity < $oldQuantity) {
-            $cart->quantity = $newQuantity;
-            $cart->save();
-
-            $cart->product->quantity += ($oldQuantity - $newQuantity);
-            $cart->product->save();
-
-            return $this->successResponse('Cart updated successfully');
-        } else {
-            return $this->successResponse('No changes made to cart');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update cart', 500);
         }
-    } catch (\Exception $e) {
-        \Log::error('Failed to update cart: ' . $e->getMessage());
-        return $this->errorResponse('Failed to update cart', 500);
     }
-}
 
-public function destroy($id)
-{
-    try {
-        $cart = Cart::findOrFail($id);
+    public function destroy($id)
+    {
+        try {
+            $cart = Cart::findOrFail($id);
 
-        $product = $cart->product;
+            $product = $cart->product;
 
-        $product->quantity += $cart->quantity;
-        $product->save();
+            $product->quantity += $cart->quantity;
+            $product->save();
 
-        $cart->delete();
+            $cart->delete();
 
-        return $this->successResponse('Cart deleted successfully');
-    } catch (\Exception $e) {
-        \Log::error('Failed to delete cart: ' . $e->getMessage());
-        return $this->errorResponse('Failed to delete cart', 500);
+            return $this->successResponse('Cart deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete cart', 500);
+        }
     }
-}
-
 }
