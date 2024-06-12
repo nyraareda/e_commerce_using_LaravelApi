@@ -66,7 +66,7 @@ class ProductAttributeController extends Controller
 
         $attribute->delete();
 
-        return $this->successResponse(null, 'Attribute deleted successfully');
+        return $this->successResponse($attribute, 'Attribute deleted successfully');
     }
 
     //Search about the productname

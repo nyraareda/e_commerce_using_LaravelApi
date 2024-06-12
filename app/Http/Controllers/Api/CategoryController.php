@@ -115,7 +115,7 @@ private function formatCategoryResponse($category, $message)
             return $this->errorResponse('Category not found', 404);
         }
 
-        ProductCategory::where('category_id', $category->id)->delete();
+        ProductsCategory::where('category_id', $category->id)->delete();
 
         $category->delete();
 

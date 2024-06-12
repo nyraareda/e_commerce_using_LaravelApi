@@ -37,7 +37,6 @@ Route::group(['middleware' => ['api', 'auth:api', 'role:admin']], function () {
     Route::post('/products', [ProductController::class, 'store']);
     Route::put('/products/{id}', [ProductController::class, 'update']);
     Route::delete('/products/{id}', [ProductController::class, 'destroy']);
-    Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{id}', [ProductController::class, 'show']);
     Route::post('/products/search', [ProductController::class, 'search']);
 
@@ -57,18 +56,20 @@ Route::group(['middleware' => ['api', 'auth:api', 'role:admin']], function () {
     Route::put('/attributes/{id}', [ProductAttributeController::class, 'update']);
     Route::delete('/attributes/{id}', [ProductAttributeController::class, 'destroy']);
 
-
+    Route::get('/carts', [CartController::class, 'index']);
 
 });
 
 Route::group(['middleware' => ['api', 'auth:api', 'role:customer']], function () {
 
+    Route::get('/products/{id}', [ProductController::class, 'show']);
+    Route::get('/products', [ProductController::class, 'index']);
     //Endpoint for Cart
     Route::post('/carts/{product_id}', [CartController::class, 'store']);
     Route::put('/carts/{product_id}', [CartController::class, 'update']);
-    Route::get('/carts', [CartController::class, 'index']);
     Route::delete('/carts/{id}', [CartController::class, 'destroy']);
     Route::get('/carts/{id}', [CartController::class, 'show']);
 
 });
+
 
